@@ -20,6 +20,7 @@ PGPMenu sits in your menu bar (🔒). It operates on your clipboard:
 - macOS 12+
 - GnuPG: `brew install gnupg`
 - At least one GPG key: `gpg --full-generate-key`
+- Alternatively, get the [GPG Suite](https://gpgtools.org) if you prefer to have a GUI.
 
 ## Install
 
