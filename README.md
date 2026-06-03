@@ -64,6 +64,7 @@ make install   # builds and copies to /Applications
 | Sign Clipboard | S | Clearsign text with your key |
 | Verify Clipboard | V | Check signature validity |
 | Refresh Keys | R | Reload keyring after importing new keys |
+| Launch at Login | | Toggle automatic startup at login |
 
 ## Adding Recipients
 
