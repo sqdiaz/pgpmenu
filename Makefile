@@ -10,7 +10,7 @@ else
   TARGET = x86_64-apple-macosx12.0
 endif
 
-.PHONY: all clean install run
+.PHONY: all clean install run dmg
 
 all: $(APP_BUNDLE)
 
@@ -23,6 +23,12 @@ $(APP_BUNDLE): $(SOURCES) Resources/Info.plist
 		-O \
 		$(SOURCES)
 	@cp Resources/Info.plist $(APP_BUNDLE)/Contents/
+
+dmg: $(APP_BUNDLE)
+	hdiutil create -volname "PGPMenu" \
+		-srcfolder $(APP_BUNDLE) \
+		-ov -format UDZO \
+		$(BUILD_DIR)/PGPMenu.dmg
 
 clean:
 	rm -rf $(BUILD_DIR)

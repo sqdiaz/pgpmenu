@@ -17,19 +17,17 @@ jobs:
       - name: Build
         run: make
 
-      - name: Create ZIP
-        run: |
-          cd build
-          zip -r PGPMenu.zip PGPMenu.app
+      - name: Create DMG
+        run: make dmg
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: PGPMenu
-          path: build/PGPMenu.zip
+          path: build/PGPMenu.dmg
 
       - name: Upload release asset
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: build/PGPMenu.zip
+          files: build/PGPMenu.dmg
