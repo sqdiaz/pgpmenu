@@ -75,6 +75,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
+        let loginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        loginItem.target = self
+        loginItem.state = LoginItemManager.isEnabled ? .on : .off
+        menu.addItem(loginItem)
+
+        menu.addItem(NSMenuItem.separator())
+
         menu.addItem(withTitle: "Quit", action: #selector(quit), keyEquivalent: "q")
 
         statusItem.menu = menu
@@ -145,6 +152,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func refreshKeys() {
         buildMenu()
         showNotification(title: "Keys Refreshed", body: "Key list updated")
+    }
+
+    @objc private func toggleLaunchAtLogin() {
+        if LoginItemManager.isEnabled {
+            LoginItemManager.disable()
+        } else {
+            LoginItemManager.enable()
+        }
+        buildMenu()
     }
 
     @objc private func quit() {
