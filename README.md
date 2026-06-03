@@ -1,10 +1,10 @@
 # PGPMenu
 
-A free, lightweight macOS menu bar app for GPG encryption — no paid plugins, no lock-in. Works with any email client.
+A free, lightweight macOS menu bar app for GPG encryption.
 
 ## Why?
 
-GPG Suite Mail costs money and only works with Apple Mail. PGPMenu gives you encrypt/decrypt/sign/verify from the menu bar, working with **any** app via the clipboard.
+Alternatives cost money. PGPMenu gives you encrypt/decrypt/sign/verify from the menu bar, working with **any** app via the clipboard.
 
 ## How It Works
 
@@ -81,5 +81,5 @@ They'll then appear in the Encrypt submenu.
 
 ## License
 
-GPLv3 — see [LICENSE](LICENSE).
+[GPLv3](LICENSE)
 
