@@ -103,6 +103,8 @@ gpg --import friend.asc
 gpg --keyserver keys.openpgp.org --recv-keys THEIR_KEY_ID
 ```
 
+You may also use the built-in key management GUI to import keys. 
+
 They'll then appear in the Encrypt submenu.
 
 ## License
