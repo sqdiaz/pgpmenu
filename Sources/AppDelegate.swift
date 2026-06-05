@@ -36,12 +36,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Encrypt submenu
         let encryptItem = NSMenuItem(title: "Encrypt Clipboard", action: nil, keyEquivalent: "e")
         let encryptMenu = NSMenu()
-        let keys = gpg.listPublicKeys()
+        let pubKeys = gpg.listPublicKeys()
 
-        if keys.isEmpty {
+        if pubKeys.isEmpty {
             encryptMenu.addItem(withTitle: "No keys found", action: nil, keyEquivalent: "")
         } else {
-            for key in keys {
+            for key in pubKeys {
                 let item = NSMenuItem(title: key.displayName, action: #selector(encryptForRecipient(_:)), keyEquivalent: "")
                 item.representedObject = key.email
                 item.target = self
@@ -58,9 +58,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
-        // Sign
-        let signItem = NSMenuItem(title: "Sign Clipboard", action: #selector(signClipboard), keyEquivalent: "s")
-        signItem.target = self
+        // Sign submenu with key selection
+        let signItem = NSMenuItem(title: "Sign Clipboard", action: nil, keyEquivalent: "s")
+        let signMenu = NSMenu()
+        let secretKeys = gpg.listSecretKeys()
+
+        if secretKeys.isEmpty {
+            signMenu.addItem(withTitle: "No secret keys found", action: nil, keyEquivalent: "")
+        } else {
+            for key in secretKeys {
+                let item = NSMenuItem(title: key.displayName, action: #selector(signWithKey(_:)), keyEquivalent: "")
+                item.representedObject = key.id
+                item.target = self
+                signMenu.addItem(item)
+            }
+        }
+        signItem.submenu = signMenu
         menu.addItem(signItem)
 
         // Verify
@@ -146,6 +159,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             showNotification(title: "Decrypted ✓", body: "Decrypted text copied (auto-clears in \(clipboard.timeout.label))")
         case .failure(let error):
             showNotification(title: "Decryption Failed", body: error.localizedDescription)
+        }
+    }
+
+    @objc private func signWithKey(_ sender: NSMenuItem) {
+        guard let keyID = sender.representedObject as? String else { return }
+        guard let text = getClipboardText() else {
+            showNotification(title: "Error", body: "Clipboard is empty or not text")
+            return
+        }
+
+        switch gpg.sign(text: text, signingKeyID: keyID) {
+        case .success(let signed):
+            clipboard.setNonSensitive(signed)
+            showNotification(title: "Signed ✓", body: "Signed text copied to clipboard")
+        case .failure(let error):
+            showNotification(title: "Signing Failed", body: error.localizedDescription)
         }
     }
 

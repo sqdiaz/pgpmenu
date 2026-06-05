@@ -116,13 +116,13 @@ class GPGWrapper {
         )
     }
 
-    func sign(text: String) -> Result<String, GPGError> {
+    func sign(text: String, signingKeyID: String? = nil) -> Result<String, GPGError> {
         guard let gpg = gpgPath else { return .failure(.gpgNotFound) }
-        return runWithInput(
-            gpg,
-            arguments: ["--clearsign", "--batch"],
-            input: text
-        )
+        var arguments = ["--clearsign", "--batch"]
+        if let keyID = signingKeyID {
+            arguments.append(contentsOf: ["--default-key", keyID])
+        }
+        return runWithInput(gpg, arguments: arguments, input: text)
     }
 
     func verify(text: String) -> Result<String, GPGError> {
@@ -159,14 +159,38 @@ class GPGWrapper {
     }
 
     private func parseUID(_ uid: String) -> (name: String, email: String) {
-        // Format: "Name <email@example.com>"
-        guard let emailStart = uid.firstIndex(of: "<"),
-              let emailEnd = uid.firstIndex(of: ">") else {
-            return (uid, "")
+        // Handle multiple UID formats:
+        // 1. "Name <email@example.com>"
+        // 2. "email@example.com"
+        // 3. "(Comment) Name <email@example.com>"
+        // 4. "Name" (just name, no email)
+        
+        if let emailStart = uid.firstIndex(of: "<"),
+           let emailEnd = uid.firstIndex(of: ">") {
+            // Format: "Name <email>" or "(Comment) Name <email>"
+            let email = String(uid[uid.index(after: emailStart)..<emailEnd])
+            let beforeEmail = String(uid[uid.startIndex..<emailStart]).trimmingCharacters(in: .whitespaces)
+            
+            // Remove comment if present: "(Comment) Name" -> "Name"
+            let name: String
+            if beforeEmail.hasPrefix("(") {
+                if let commentEnd = beforeEmail.firstIndex(of: ")") {
+                    let afterComment = String(beforeEmail[beforeEmail.index(after: commentEnd)...]).trimmingCharacters(in: .whitespaces)
+                    name = afterComment.isEmpty ? beforeEmail : afterComment
+                } else {
+                    name = beforeEmail
+                }
+            } else {
+                name = beforeEmail
+            }
+            return (name, email)
+        } else if uid.contains("@") {
+            // Format: "email@example.com" (just email)
+            return ("", uid.trimmingCharacters(in: .whitespaces))
+        } else {
+            // Format: "Name" (just name, no email)
+            return (uid.trimmingCharacters(in: .whitespaces), "")
         }
-        let name = String(uid[uid.startIndex..<emailStart]).trimmingCharacters(in: .whitespaces)
-        let email = String(uid[uid.index(after: emailStart)..<emailEnd])
-        return (name, email)
     }
 
     private func run(_ path: String, arguments: [String]) -> String {
