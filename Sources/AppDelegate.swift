@@ -4,6 +4,8 @@ import UserNotifications
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let gpg = GPGWrapper.shared
+    private let clipboard = ClipboardManager.shared
+    private let keysWindow = KeysWindowController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide dock icon
@@ -68,6 +70,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
+        // Clipboard security
+        let clearItem = NSMenuItem(title: "Clear Clipboard Now", action: #selector(clearClipboard), keyEquivalent: "x")
+        clearItem.target = self
+        menu.addItem(clearItem)
+
+        // Auto-clear timeout submenu
+        let timeoutItem = NSMenuItem(title: "Auto-Clear Timeout", action: nil, keyEquivalent: "")
+        let timeoutMenu = NSMenu()
+        for timeout in ClipboardManager.ClearTimeout.allCases {
+            let item = NSMenuItem(title: timeout.label, action: #selector(setClipboardTimeout(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = timeout.rawValue
+            if clipboard.timeout == timeout {
+                item.state = .on
+            }
+            timeoutMenu.addItem(item)
+        }
+        timeoutItem.submenu = timeoutMenu
+        menu.addItem(timeoutItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Key management
+        let manageKeysItem = NSMenuItem(title: "Manage Keys…", action: #selector(openKeysWindow), keyEquivalent: "k")
+        manageKeysItem.target = self
+        menu.addItem(manageKeysItem)
+
         // Refresh keys
         let refreshItem = NSMenuItem(title: "Refresh Keys", action: #selector(refreshKeys), keyEquivalent: "r")
         refreshItem.target = self
@@ -98,7 +127,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         switch gpg.encrypt(text: text, recipientEmail: email) {
         case .success(let encrypted):
-            setClipboard(encrypted)
+            clipboard.setNonSensitive(encrypted)
             showNotification(title: "Encrypted ✓", body: "Encrypted text copied to clipboard")
         case .failure(let error):
             showNotification(title: "Encryption Failed", body: error.localizedDescription)
@@ -113,8 +142,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         switch gpg.decrypt(text: text) {
         case .success(let decrypted):
-            setClipboard(decrypted)
-            showNotification(title: "Decrypted ✓", body: "Decrypted text copied to clipboard")
+            clipboard.setSensitive(decrypted)
+            showNotification(title: "Decrypted ✓", body: "Decrypted text copied (auto-clears in \(clipboard.timeout.label))")
         case .failure(let error):
             showNotification(title: "Decryption Failed", body: error.localizedDescription)
         }
@@ -128,7 +157,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         switch gpg.sign(text: text) {
         case .success(let signed):
-            setClipboard(signed)
+            clipboard.setNonSensitive(signed)
             showNotification(title: "Signed ✓", body: "Signed text copied to clipboard")
         case .failure(let error):
             showNotification(title: "Signing Failed", body: error.localizedDescription)
@@ -154,6 +183,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         showNotification(title: "Keys Refreshed", body: "Key list updated")
     }
 
+    @objc private func clearClipboard() {
+        clipboard.forceClear()
+    }
+
+    @objc private func setClipboardTimeout(_ sender: NSMenuItem) {
+        if let timeout = ClipboardManager.ClearTimeout(rawValue: sender.tag) {
+            clipboard.timeout = timeout
+            buildMenu()
+        }
+    }
+
+    @objc private func openKeysWindow() {
+        keysWindow.showWindow()
+    }
+
     @objc private func toggleLaunchAtLogin() {
         if LoginItemManager.isEnabled {
             LoginItemManager.disable()
@@ -164,6 +208,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func quit() {
+        clipboard.forceClear()
         NSApp.terminate(nil)
     }
 
@@ -171,12 +216,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func getClipboardText() -> String? {
         NSPasteboard.general.string(forType: .string)
-    }
-
-    private func setClipboard(_ text: String) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
     }
 
     private func showNotification(title: String, body: String) {
